@@ -1,0 +1,412 @@
+/* --- CSS DEĞİŞKENLERİ (Koyu Tema) --- */
+:root {
+    --bg-color: #0d1117;
+    --panel-bg: #161b22;
+    --border-color: #30363d;
+    --text-main: #c9d1d9;
+    --accent-green: #238636;
+    --accent-blue: #58a6ff;
+    --accent-red: #da3633;
+    --terminal-bg: #000;
+    --terminal-text: #0f0;
+}
+
+body {
+    font-family: 'Segoe UI', 'Roboto', monospace;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--accent-blue);
+}
+
+.node-id {
+    font-size: 0.9rem;
+    color: #8b949e;
+}
+
+/* Grid Düzeni */
+.container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: 1fr 200px;
+    gap: 20px;
+    height: 100%;
+}
+
+.panel {
+    background-color: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+/* Kontroller ve Cüzdan Stilleri */
+.wallet-box {
+    background-color: #0d1117;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #30363d;
+    margin-bottom: 10px;
+}
+
+.wallet-input {
+    font-family: monospace;
+    font-weight: bold;
+    color: #ffffff !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    width: 100%;
+    margin-top: 5px;
+}
+
+.controls input,
+.controls select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    background: #0d1117;
+    border: 1px solid var(--border-color);
+    color: white;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.btn {
+    width: 100%;
+    padding: 10px;
+    background-color: var(--accent-green);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn:hover {
+    background-color: #2ea043;
+}
+
+.btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.btn-hack {
+    background-color: var(--accent-red);
+}
+
+.btn-hack:hover {
+    background-color: #a0201e;
+}
+
+.btn-validate {
+    float: right;
+    background: none;
+    border: 1px solid #555;
+    color: white;
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+#miningStatus {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: #aaa;
+    text-align: center;
+}
+
+/* Zincir Görünümü */
+.chain-container {
+    grid-column: 2;
+    grid-row: 1;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.block-card {
+    background: #21262d;
+    border: 1px solid var(--accent-blue);
+    min-width: 250px;
+    max-width: 250px;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    position: relative;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.block-card:not(:last-child)::after {
+    content: '➔';
+    position: absolute;
+    right: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-main);
+    font-size: 1.2rem;
+}
+
+.block-card.genesis {
+    border-color: #d2a8ff;
+}
+
+.block-card.invalid {
+    border-color: var(--accent-red);
+    box-shadow: 0 0 15px rgba(218, 54, 51, 0.5);
+}
+
+.hash-text {
+    display: block;
+    font-family: monospace;
+    font-size: 0.75rem;
+    word-break: break-all;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px;
+    margin-top: 2px;
+    color: #a5d6ff;
+}
+
+.lbl {
+    font-weight: bold;
+    color: #8b949e;
+    font-size: 0.8rem;
+}
+
+/* Terminal */
+.terminal-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+
+.terminal {
+    background-color: var(--terminal-bg);
+    color: var(--terminal-text);
+    font-family: 'Courier New', monospace;
+    padding: 10px;
+    height: 100%;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    border-radius: 4px;
+}
+
+.log-entry {
+    margin-bottom: 4px;
+}
+
+.log-time {
+    color: #888;
+    margin-right: 8px;
+}
+
+.log-info {
+    color: #4af;
+}
+
+.log-success {
+    color: #0f0;
+}
+
+.log-error {
+    color: #f00;
+}
+
+.log-p2p {
+    color: #d2a8ff;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0d1117;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* --- GÜVENLİK (PRIVATE KEY) EFEKTLERİ --- */
+.security-box {
+    background-color: #21262d;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #da3633;
+    /* Kırmızı çerçeve çünkü burası hassas */
+    margin-bottom: 15px;
+}
+
+.private-key-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #da3633;
+    font-family: monospace;
+    font-size: 0.8rem;
+    filter: blur(4px);
+    /* Şifreyi sansürle */
+    transition: filter 0.3s;
+    cursor: pointer;
+}
+
+.private-key-input:hover,
+.private-key-input:focus {
+    filter: blur(0);
+    /* Üzerine gelince sansürü kaldır */
+}
+
+/* --- EXPLORER MODAL (Arama Sonuçları Penceresi) --- */
+.modal {
+    display: none;
+    /* Varsayılan olarak gizli */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    /* Arka planı karart */
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: #161b22;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #58a6ff;
+    width: 60%;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+    color: #c9d1d9;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.close-btn {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.search-result-item {
+    border-bottom: 1px solid #30363d;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+.tx-in {
+    color: #2ea043;
+}
+
+/* Gelen Para Yeşil */
+.tx-out {
+    color: #da3633;
+}
+
+/* Giden Para Kırmızı */
+/* --- MARKET TICKER (FİYAT GÖSTERGESİ) --- */
+.ticker-box {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.price-up {
+    color: #2ea043;
+    /* Yeşil */
+    animation: pulse-green 1s;
+}
+
+.price-down {
+    color: #da3633;
+    /* Kırmızı */
+    animation: pulse-red 1s;
+}
+
+@keyframes pulse-green {
+    0% {
+        background-color: rgba(46, 160, 67, 0.0);
+    }
+
+    50% {
+        background-color: rgba(46, 160, 67, 0.3);
+    }
+
+    100% {
+        background-color: rgba(46, 160, 67, 0.0);
+    }
+}
+
+@keyframes pulse-red {
+    0% {
+        background-color: rgba(218, 54, 51, 0.0);
+    }
+
+    50% {
+        background-color: rgba(218, 54, 51, 0.3);
+    }
+
+    100% {
+        background-color: rgba(218, 54, 51, 0.0);
+    }
+}

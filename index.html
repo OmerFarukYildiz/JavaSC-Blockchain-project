@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JS P2P Blockchain Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #334155 #0f172a;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .log-info {
+      color: #94a3b8;
+    }
+
+    .log-success {
+      color: #10b981;
+    }
+
+    .log-error {
+      color: #ef4444;
+    }
+
+    .log-p2p {
+      color: #06b6d4;
+    }
+
+    @keyframes neonPulse {
+      0%, 100% {
+        box-shadow: 0 0 5px #ef4444, 0 0 10px #ef4444, 0 0 15px rgba(239, 68, 68, 0.5);
+      }
+      50% {
+        box-shadow: 0 0 10px #ef4444, 0 0 20px #ef4444, 0 0 30px rgba(239, 68, 68, 0.5);
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-200 font-sans">
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-96 bg-slate-900 border-r border-slate-800 flex flex-col overflow-hidden">
+      <div class="p-4 border-b border-slate-800">
+        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          Control Panel
+        </h2>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Wallet Section -->
+        <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+            </svg>
+            <span class="text-sm font-medium text-slate-300">Wallet</span>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-emerald-500 font-medium block mb-1">Public Address</label>
+              <div class="flex gap-2">
+                <input type="text" id="myWalletAddress" readonly
+                  class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-white focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                <button onclick="generateNewWallet()"
+                  class="bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg px-3 py-2 transition-colors"
+                  title="Generate New Identity">
+                  <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <!-- Balances Display -->
+            <div class="bg-slate-950 rounded-lg p-3 border border-slate-700">
+              <label class="text-xs text-slate-400 font-medium block mb-2">Balances</label>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-amber-500/10 rounded-lg p-2 text-center">
+                  <span class="text-amber-500 text-lg font-bold" id="btcBalance">0</span>
+                  <span class="text-amber-400 text-xs block">BTC</span>
+                </div>
+                <div class="bg-cyan-500/10 rounded-lg p-2 text-center">
+                  <span class="text-cyan-500 text-lg font-bold" id="ethBalance">0</span>
+                  <span class="text-cyan-400 text-xs block">ETH</span>
+                </div>
+              </div>
+            </div>
+            <div class="bg-slate-950 rounded-lg p-3 border border-red-900/50">
+              <label class="text-xs text-red-500 font-medium block mb-1">🔐 Private Key</label>
+              <input type="text" id="myPrivateKey" readonly value="Loading..."
+                class="w-full bg-transparent border-none text-sm font-mono text-red-400 focus:outline-none blur-sm hover:blur-none focus:blur-none transition-all cursor-pointer"
+                title="Hover to reveal" />
+              <p class="text-[10px] text-slate-600 mt-1">This key owns the wallet. Never share it!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Send Transaction Section -->
+        <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+            </svg>
+            <span class="text-sm font-medium text-slate-300">Send Coins</span>
+          </div>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs text-slate-500 font-medium block mb-1">Coin Type</label>
+              <select id="sendCoinType"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 font-medium block mb-1">Receiver Address</label>
+              <input type="text" id="receiverWallet" placeholder="e.g. Wallet_X92..."
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 font-medium block mb-1">Amount</label>
+              <input type="number" id="amount" placeholder="0" min="1"
+                class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+            </div>
+            <p class="text-xs text-red-500 text-right">+1 Coin Fee ⛽</p>
+            <button id="sendBtn" onclick="sendCoins()"
+              class="w-full bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg shadow-cyan-500/20">
+              Send
+            </button>
+          </div>
+        </div>
+
+        <!-- Mining Section -->
+        <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+              </path>
+            </svg>
+            <span class="text-sm font-medium text-slate-300">Mining</span>
+          </div>
+          <div class="space-y-3">
+            <p class="text-xs text-slate-400">Mine to receive +50 BTC and +50 ETH to your wallet</p>
+            <div id="miningStatus" class="hidden bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-center">
+              <span class="text-amber-500 text-sm">⛏️ Mining in progress...</span>
+            </div>
+            <button id="mineBtn" onclick="mineBlock()"
+              class="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+              Mine Block
+            </button>
+          </div>
+        </div>
+
+        <!-- DEX Pool Section -->
+        <div class="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-xl p-4 border border-purple-500/50">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-lg">🏊</span>
+            <span class="text-sm font-medium text-purple-300">Liquidity Pool (AMM)</span>
+          </div>
+
+          <!-- Pool Info -->
+          <div class="bg-slate-950/50 rounded-lg p-3 mb-3">
+            <div class="text-xs text-slate-400 mb-2">Pool Reserves</div>
+            <div class="grid grid-cols-2 gap-2 text-center">
+              <div>
+                <span class="text-amber-400 font-bold" id="poolBTC">50</span>
+                <span class="text-xs text-slate-400 block">BTC</span>
+              </div>
+              <div>
+                <span class="text-cyan-400 font-bold" id="poolETH">50</span>
+                <span class="text-xs text-slate-400 block">ETH</span>
+              </div>
+            </div>
+            <div class="mt-2 text-center">
+              <span class="text-xs text-slate-400">Price: 1 BTC = </span>
+              <span class="text-purple-400 font-bold" id="btcToEthPrice">1.00</span>
+              <span class="text-xs text-slate-400"> ETH</span>
+            </div>
+          </div>
+
+          <!-- Swap Section -->
+          <div class="mb-3">
+            <label class="text-xs text-purple-400 font-medium block mb-1">Swap</label>
+            <div class="flex gap-2 items-center">
+              <input type="number" id="swapAmount" placeholder="Amount" min="0.1" step="0.1"
+                class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-sm font-mono text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500" />
+              <select id="swapFrom"
+                class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-sm text-white">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+              </select>
+            </div>
+            <p class="text-xs text-purple-300 mt-1">You receive: <span id="swapOutput" class="font-bold">0</span> <span
+                id="swapOutputCoin">ETH</span></p>
+            <button onclick="performSwap()"
+              class="w-full mt-2 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white font-medium py-2 rounded-lg transition-all">
+              Swap
+            </button>
+          </div>
+
+          <!-- Add Liquidity Section -->
+          <div>
+            <label class="text-xs text-purple-400 font-medium block mb-1">Add Liquidity</label>
+            <div class="flex gap-2 items-center">
+              <input type="number" id="liquidityAmount" placeholder="Amount" min="1"
+                class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-sm font-mono text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500" />
+              <select id="liquidityCoin"
+                class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-sm text-white">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+              </select>
+            </div>
+            <button onclick="addLiquidity()"
+              class="w-full mt-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-medium py-2 rounded-lg transition-all">
+              Add Liquidity
+            </button>
+          </div>
+        </div>
+
+        <!-- Ledger -->
+        <div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-sm font-medium text-slate-300">📖 Ledger</span>
+          </div>
+          <div id="ledgerList" class="text-sm max-h-40 overflow-y-auto">
+            <span class="text-slate-600 italic">No transactions yet...</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-2">
+          <button onclick="corruptChain()"
+            class="flex-1 flex items-center justify-center gap-2 bg-red-900/30 hover:bg-red-900/50 border border-red-800 text-red-400 font-medium py-2 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+              </path>
+            </svg>
+            Hack
+          </button>
+          <button onclick="resetChain()"
+            class="flex-1 flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium py-2 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+            </svg>
+            Reset
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <header
+        class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <div
+              class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
+              <span class="text-lg">⛓️</span>
+            </div>
+            <div>
+              <h1 class="text-lg font-bold text-white">JS P2P DEX Blockchain</h1>
+              <span class="text-xs text-slate-500">Node ID: <span id="nodeIdDisplay"
+                  class="text-cyan-400 font-mono">Generating...</span></span>
+            </div>
+          </div>
+        </div>
+        <!-- Pool Price Ticker -->
+        <div class="flex items-center gap-3 bg-slate-900 border border-slate-700 rounded-full px-4 py-2">
+          <span class="text-amber-400">₿</span>
+          <span class="text-sm text-slate-400">1 BTC =</span>
+          <span id="headerPrice" class="text-lg font-bold text-purple-400 font-mono">1.00</span>
+          <span class="text-cyan-400">ETH</span>
+        </div>
+        <!-- Status -->
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0">
+            </path>
+          </svg>
+          <span id="statusIndicator" class="text-sm text-emerald-500">● Online &amp; Synced</span>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="flex-1 flex flex-col gap-4 p-4 overflow-hidden">
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <span class="text-amber-500">₿</span>
+            </div>
+            <div>
+              <p class="text-xs text-slate-500">Pool BTC</p>
+              <p id="statPoolBTC" class="text-lg font-bold text-amber-400 font-mono">50</p>
+            </div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+              <span class="text-cyan-500">Ξ</span>
+            </div>
+            <div>
+              <p class="text-xs text-slate-500">Pool ETH</p>
+              <p id="statPoolETH" class="text-lg font-bold text-cyan-400 font-mono">50</p>
+            </div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs text-slate-500">Total Blocks</p>
+              <p id="statTotalBlocks" class="text-lg font-bold text-white font-mono">1</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Blockchain View & Chart -->
+        <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+          <!-- Blockchain View -->
+          <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b border-slate-800 flex-wrap gap-2">
+              <h3 class="font-semibold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
+                Blockchain View
+              </h3>
+              <div class="flex items-center gap-3 flex-wrap">
+                <button onclick="validateChainUI()" id="validateChainUI"
+                  class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm text-slate-300 px-3 py-1.5 rounded-lg transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
+                  </svg>
+                  Validate Chain
+                </button>
+                <div class="flex items-center gap-2">
+                  <input type="text" id="searchInput" placeholder="Search wallet or hash..."
+                    class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 w-48" />
+                  <button onclick="searchExplorer()"
+                    class="bg-cyan-600 hover:bg-cyan-500 p-2 rounded-lg transition-colors">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="chainContainer" class="flex-1 flex gap-4 overflow-x-auto p-4 items-start"
+              style="min-height: 180px;"></div>
+          </div>
+
+          <!-- Price Chart -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b border-slate-800">
+              <h3 class="font-semibold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-purple-500"></span>📈 BTC/ETH Price Chart
+              </h3>
+            </div>
+            <div class="flex-1 p-4" style="min-height: 200px;">
+              <canvas id="priceChart" class="w-full h-full"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+          <div class="flex items-center justify-between p-3 border-b border-slate-800">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Network Terminal (P2P Logs)
+            </h3>
+            <div class="flex gap-1.5">
+              <div class="w-3 h-3 rounded-full bg-red-500"></div>
+              <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+              <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            </div>
+          </div>
+          <div id="terminal" class="h-40 overflow-y-auto p-4 font-mono text-sm bg-black text-emerald-500">
+            <div class="log-entry"><span class="log-time text-slate-600">[System]</span> DEX Node initialized.</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Explorer Modal -->
+  <div id="explorerModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div
+        class="bg-slate-900 border border-cyan-500/50 rounded-2xl w-full max-w-2xl max-h-[70vh] overflow-hidden shadow-2xl shadow-cyan-500/10">
+        <div class="flex items-center justify-between p-4 border-b border-slate-800">
+          <h2 id="modalTitle" class="text-lg font-semibold text-white">Search Results</h2>
+          <button onclick="closeModal()" class="text-slate-400 hover:text-white transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div id="modalBody" class="p-4 overflow-y-auto max-h-[calc(70vh-60px)]"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- HELPER FUNCTIONS ---
+    const generateId = () => Math.random().toString(36).substr(2, 9);
+    const nodeId = generateId();
+    document.getElementById("nodeIdDisplay").innerText = nodeId;
+
+    const log = (msg, type = "info") => {
+      const term = document.getElementById("terminal");
+      if (!term) return;
+      const time = new Date().toLocaleTimeString();
+      let colorClass = "log-info";
+      if (type === "success") colorClass = "log-success";
+      if (type === "error") colorClass = "log-error";
+      if (type === "p2p") colorClass = "log-p2p";
+      term.innerHTML += `<div class="log-entry"><span class="log-time text-slate-600">[${time}]</span> <span class="${colorClass}">${msg}</span></div>`;
+      term.scrollTop = term.scrollHeight;
+    };
+
+    // --- SOUND EFFECTS ENGINE ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSound(type) {
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+
+      if (type === "coin") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(1600, now + 0.1);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === "success") {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.1);
+        osc.frequency.setValueAtTime(783.99, now + 0.2);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      } else if (type === "error") {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.linearRampToValueAtTime(0.001, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+    }
+
+    // --- SECURITY & WALLET ---
+    let myWalletId = null;
+    let myPrivateKey = null;
+
+    // --- MULTI-COIN BALANCES ---
+    let userBalances = {
+      BTC: 0,
+      ETH: 0
+    };
+
+    // --- LIQUIDITY POOL (AMM with x*y=k) ---
+    let liquidityPool = {
+      BTC: 50,
+      ETH: 50,
+      k: 2500 // x * y = k constant
+    };
+
+    // --- PRICE CHART ---
+    let priceChart = null;
+
+    function initPriceChart() {
+      const ctx = document.getElementById("priceChart").getContext("2d");
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, "rgba(168, 85, 247, 0.5)");
+      gradient.addColorStop(1, "rgba(168, 85, 247, 0.0)");
+
+      priceChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "BTC/ETH Price",
+            data: [],
+            borderColor: "#a855f7",
+            backgroundColor: gradient,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: { grid: { color: "#1e293b" }, ticks: { color: "#64748b" } }
+          },
+          animation: { duration: 500 }
+        }
+      });
+      addDataToChart(getPoolPrice());
+    }
+
+    function addDataToChart(price) {
+      if (!priceChart) return;
+      const now = new Date().toLocaleTimeString();
+      priceChart.data.labels.push(now);
+      priceChart.data.datasets[0].data.push(price);
+      if (priceChart.data.labels.length > 30) {
+        priceChart.data.labels.shift();
+        priceChart.data.datasets[0].data.shift();
+      }
+      priceChart.update();
+    }
+
+    function getPoolPrice() {
+      // Price of 1 BTC in ETH
+      return liquidityPool.ETH / liquidityPool.BTC;
+    }
+
+    function loadPoolData() {
+      const storedPool = localStorage.getItem("liquidityPool");
+      if (storedPool) {
+        liquidityPool = JSON.parse(storedPool);
+      }
+      const storedBalances = localStorage.getItem("userBalances");
+      if (storedBalances) {
+        userBalances = JSON.parse(storedBalances);
+      }
+      updatePoolUI();
+    }
+
+    function savePoolData() {
+      localStorage.setItem("liquidityPool", JSON.stringify(liquidityPool));
+      localStorage.setItem("userBalances", JSON.stringify(userBalances));
+    }
+
+    function updatePoolUI() {
+      const price = getPoolPrice();
+      document.getElementById("poolBTC").innerText = liquidityPool.BTC.toFixed(2);
+      document.getElementById("poolETH").innerText = liquidityPool.ETH.toFixed(2);
+      document.getElementById("btcToEthPrice").innerText = price.toFixed(4);
+      document.getElementById("headerPrice").innerText = price.toFixed(4);
+      document.getElementById("statPoolBTC").innerText = liquidityPool.BTC.toFixed(2);
+      document.getElementById("statPoolETH").innerText = liquidityPool.ETH.toFixed(2);
+      document.getElementById("btcBalance").innerText = userBalances.BTC.toFixed(2);
+      document.getElementById("ethBalance").innerText = userBalances.ETH.toFixed(2);
+      updateSwapOutput();
+    }
+
+    function updateSwapOutput() {
+      const amount = parseFloat(document.getElementById("swapAmount").value) || 0;
+      const fromCoin = document.getElementById("swapFrom").value;
+      const toCoin = fromCoin === "BTC" ? "ETH" : "BTC";
+      
+      if (amount <= 0) {
+        document.getElementById("swapOutput").innerText = "0";
+        document.getElementById("swapOutputCoin").innerText = toCoin;
+        return;
+      }
+
+      const output = calculateSwapOutput(fromCoin, amount);
+      document.getElementById("swapOutput").innerText = output.toFixed(4);
+      document.getElementById("swapOutputCoin").innerText = toCoin;
+    }
+
+    function calculateSwapOutput(fromCoin, amountIn) {
+      // Using x * y = k formula with CURRENT reserves
+      const reserveIn = fromCoin === "BTC" ? liquidityPool.BTC : liquidityPool.ETH;
+      const reserveOut = fromCoin === "BTC" ? liquidityPool.ETH : liquidityPool.BTC;
+      
+      // k = current reserves product (always use current state)
+      const k = reserveIn * reserveOut;
+      
+      // After swap: newReserveIn * newReserveOut = k
+      // newReserveIn = reserveIn + amountIn
+      // newReserveOut = k / newReserveIn
+      // amountOut = reserveOut - newReserveOut
+      const newReserveIn = reserveIn + amountIn;
+      const newReserveOut = k / newReserveIn;
+      const amountOut = reserveOut - newReserveOut;
+      
+      return amountOut > 0 ? amountOut : 0;
+    }
+
+    function performSwap() {
+      if (hackActive) { alert("Network compromised – swaps are disabled."); return; }
+      const amountIn = parseFloat(document.getElementById("swapAmount").value);
+      const fromCoin = document.getElementById("swapFrom").value;
+      const toCoin = fromCoin === "BTC" ? "ETH" : "BTC";
+
+      if (!amountIn || amountIn <= 0) {
+        playSound("error");
+        alert("Please enter a valid amount!");
+        return;
+      }
+
+      if (userBalances[fromCoin] < amountIn) {
+        playSound("error");
+        alert(`Insufficient ${fromCoin} balance! You have ${userBalances[fromCoin].toFixed(2)} ${fromCoin}`);
+        return;
+      }
+
+      const amountOut = calculateSwapOutput(fromCoin, amountIn);
+      
+      if (amountOut <= 0) {
+        playSound("error");
+        alert("Invalid swap amount!");
+        return;
+      }
+
+      // Update balances
+      userBalances[fromCoin] -= amountIn;
+      userBalances[toCoin] += amountOut;
+
+      // Update pool reserves
+      if (fromCoin === "BTC") {
+        liquidityPool.BTC += amountIn;
+        liquidityPool.ETH -= amountOut;
+      } else {
+        liquidityPool.ETH += amountIn;
+        liquidityPool.BTC -= amountOut;
+      }
+
+      savePoolData();
+      updatePoolUI();
+      addDataToChart(getPoolPrice());
+
+      playSound("coin");
+      log(`🔄 Swapped ${amountIn.toFixed(2)} ${fromCoin} for ${amountOut.toFixed(4)} ${toCoin}`, "success");
+      document.getElementById("swapAmount").value = "";
+    }
+
+    function addLiquidity() {
+      if (hackActive) { alert("Network compromised – adding liquidity is disabled."); return; }
+      const amount = parseFloat(document.getElementById("liquidityAmount").value);
+      const coin = document.getElementById("liquidityCoin").value;
+
+      if (!amount || amount <= 0) {
+        playSound("error");
+        alert("Please enter a valid amount!");
+        return;
+      }
+
+      if (userBalances[coin] < amount) {
+        playSound("error");
+        alert(`Insufficient ${coin} balance! You have ${userBalances[coin].toFixed(2)} ${coin}`);
+        return;
+      }
+
+      // Deduct from user balance
+      userBalances[coin] -= amount;
+
+      // Add to pool
+      if (coin === "BTC") {
+        liquidityPool.BTC += amount;
+      } else {
+        liquidityPool.ETH += amount;
+      }
+
+      // Update k value
+      liquidityPool.k = liquidityPool.BTC * liquidityPool.ETH;
+
+      savePoolData();
+      updatePoolUI();
+      addDataToChart(getPoolPrice());
+
+      playSound("success");
+      log(`💧 Added ${amount.toFixed(2)} ${coin} liquidity to the pool`, "success");
+      document.getElementById("liquidityAmount").value = "";
+    }
+
+    // --- WALLET FUNCTIONS ---
+    function loadOrGenerateWallet() {
+      const storedPriv = localStorage.getItem("myPrivateKey");
+      const storedPub = localStorage.getItem("myWalletId");
+      if (storedPriv && storedPub) {
+        myPrivateKey = storedPriv;
+        myWalletId = storedPub;
+      } else {
+        generateNewWallet(false);
+        return;
+      }
+      updateWalletUI();
+      updateUI();
+    }
+
+    function generateNewWallet(save = true) {
+      const randomPart = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+      myPrivateKey = "Priv_" + CryptoJS.SHA256(randomPart).toString().substring(0, 32);
+      const derivedHash = CryptoJS.SHA256(myPrivateKey).toString();
+      myWalletId = "Wallet_" + derivedHash.substring(0, 10).toUpperCase();
+
+      if (save) {
+        localStorage.setItem("myPrivateKey", myPrivateKey);
+        localStorage.setItem("myWalletId", myWalletId);
+        log("🔐 New Identity Generated.", "info");
+      }
+      updateWalletUI();
+      updateUI();
+    }
+
+    function updateWalletUI() {
+      const walletInput = document.getElementById("myWalletAddress");
+      const privateInput = document.getElementById("myPrivateKey");
+      if (walletInput) walletInput.value = myWalletId;
+      if (privateInput) privateInput.value = myPrivateKey;
+    }
+
+    // --- BLOCKCHAIN CLASSES ---
+    class Block {
+      constructor(index, timestamp, transactions, previousHash = "") {
+        this.index = index;
+        this.timestamp = timestamp;
+        this.transactions = transactions;
+        this.previousHash = previousHash;
+        this.hash = this.calculateHash();
+        this.nonce = 0;
+      }
+
+      calculateHash() {
+        return CryptoJS.SHA256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce).toString();
+      }
+
+      async mineBlock(difficulty) {
+        const target = Array(difficulty + 1).join("0");
+        const batchSize = 500;
+        while (this.hash.substring(0, difficulty) !== target) {
+          this.nonce++;
+          this.hash = this.calculateHash();
+          if (this.nonce % batchSize === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+          }
+        }
+        log(`Block mined! Hash: ${this.hash.substring(0, 20)}...`, "success");
+      }
+    }
+
+    class Blockchain {
+      constructor() {
+        this.chain = [this.createGenesisBlock()];
+        this.transactions = [];
+        this.loadFromStorage();
+      }
+
+      createGenesisBlock() {
+        return new Block(0, 1704067200000, ["Genesis Block"], "0");
+      }
+
+      getLatestBlock() {
+        return this.chain[this.chain.length - 1];
+      }
+
+      saveToStorage() {
+        localStorage.setItem("blockchain_chain", JSON.stringify(this.chain));
+        localStorage.setItem("blockchain_txs", JSON.stringify(this.transactions));
+      }
+
+      loadFromStorage() {
+        if (localStorage.getItem("blockchain_chain")) {
+          const storedChain = JSON.parse(localStorage.getItem("blockchain_chain"));
+          this.chain = storedChain.map(b => {
+            const block = new Block(b.index, b.timestamp, b.transactions, b.previousHash);
+            block.nonce = b.nonce;
+            block.hash = b.hash;
+            return block;
+          });
+          if (localStorage.getItem("blockchain_txs")) {
+            this.transactions = JSON.parse(localStorage.getItem("blockchain_txs"));
+          }
+          log("💾 Data loaded from storage.", "info");
+        }
+      }
+
+      addTransaction(tx) {
+        this.transactions.push(tx);
+        this.saveToStorage();
+      }
+
+      async mineNewBlock() {
+        const blockTransactions = [...this.transactions];
+        const latestBlock = this.getLatestBlock();
+        const newBlock = new Block(latestBlock.index + 1, Date.now(), blockTransactions, latestBlock.hash);
+        await newBlock.mineBlock(2);
+        this.chain.push(newBlock);
+        this.transactions = [];
+        this.saveToStorage();
+        return newBlock;
+      }
+
+      isChainValid() {
+        for (let i = 1; i < this.chain.length; i++) {
+          const currentBlock = this.chain[i];
+          const previousBlock = this.chain[i - 1];
+          if (currentBlock.hash !== currentBlock.calculateHash()) return false;
+          if (currentBlock.previousHash !== previousBlock.hash) return false;
+        }
+        return true;
+      }
+    }
+
+    // --- GLOBAL VARIABLES ---
+    const myBlockchain = new Blockchain();
+    let isMining = false;
+
+    // --- SEND COINS FUNCTION ---
+    function sendCoins() {
+      if (hackActive) { alert("Network compromised – transactions are disabled."); return; }
+      const receiver = document.getElementById("receiverWallet").value;
+      const amountVal = document.getElementById("amount").value;
+      const coinType = document.getElementById("sendCoinType").value;
+      const amount = parseFloat(amountVal);
+      const fee = 1;
+
+      if (receiver === "" || !amount || amount <= 0) {
+        playSound("error");
+        alert("Please enter valid data!");
+        return;
+      }
+
+      if (!myWalletId) {
+        alert("Please generate a wallet first!");
+        return;
+      }
+
+      const totalCost = amount + fee;
+      if (userBalances[coinType] < totalCost) {
+        playSound("error");
+        alert(`Insufficient ${coinType} balance!\nYou have: ${userBalances[coinType].toFixed(2)} ${coinType} (including fee)`);
+        return;
+      }
+
+      // Deduct from sender
+      userBalances[coinType] -= totalCost;
+
+      // Record transaction
+      const tx = {
+        from: myWalletId,
+        to: receiver,
+        amount: amount,
+        fee: fee,
+        coin: coinType,
+        timestamp: Date.now()
+      };
+
+      myBlockchain.addTransaction(tx);
+      savePoolData();
+      updatePoolUI();
+
+      // Broadcast to receiver via P2P
+      p2pChannel.postMessage({
+        type: MSG_TYPES.SEND_COINS,
+        payload: {
+          from: myWalletId,
+          to: receiver,
+          amount: amount,
+          coin: coinType
+        },
+        sender: nodeId
+      });
+
+      playSound("coin");
+      log(`💸 Sent ${amount} ${coinType} to ${receiver.substring(0, 10)}... (Fee: ${fee} ${coinType})`, "success");
+      
+      document.getElementById("receiverWallet").value = "";
+      document.getElementById("amount").value = "";
+      updateUI();
+    }
+
+    // --- MINE BLOCK FUNCTION ---
+    async function mineBlock() {
+      if (hackActive) { alert("Network compromised – mining is disabled."); return; }
+      if (isMining) return;
+
+      const btn = document.getElementById("mineBtn");
+      const status = document.getElementById("miningStatus");
+
+      isMining = true;
+      btn.disabled = true;
+      status.classList.remove("hidden");
+
+      try {
+        log("⛏️ Mining block...", "info");
+        await new Promise(r => setTimeout(r, 100));
+
+        // Add mining reward (50 BTC + 50 ETH)
+        userBalances.BTC += 50;
+        userBalances.ETH += 50;
+
+        const rewardTx = {
+          type: "MINING_REWARD",
+          to: myWalletId,
+          btc: 50,
+          eth: 50,
+          timestamp: Date.now()
+        };
+
+        myBlockchain.addTransaction(rewardTx);
+        const newBlock = await myBlockchain.mineNewBlock();
+
+        // Broadcast new block to network
+        if (typeof p2pChannel !== 'undefined') {
+          p2pChannel.postMessage({ type: MSG_TYPES.NEW_BLOCK, payload: newBlock, sender: nodeId });
+        }
+
+        savePoolData();
+        updatePoolUI();
+
+        log(`🎉 Block #${newBlock.index} mined! Received 50 BTC + 50 ETH`, "success");
+        playSound("success");
+
+        updateUI();
+      } catch (error) {
+        console.error("Mining error:", error);
+        log("❌ Mining failed: " + error.message, "error");
+      } finally {
+        isMining = false;
+        btn.disabled = false;
+        status.classList.add("hidden");
+      }
+    }
+
+    function resetChain() {
+      if (confirm("WARNING: This will clear all data for ALL nodes. Are you sure?")) {
+        // Broadcast reset to all nodes
+        p2pChannel.postMessage({ type: MSG_TYPES.RESET_NETWORK, sender: nodeId });
+        performReset();
+      }
+    }
+
+    // Global flag for hack state
+    let hackActive = false;
+    let corruptedBlockIndex = null; // Track which block was corrupted
+
+    function setTransactionButtonsDisabled(disabled) {
+      const btns = ["sendBtn", "swapBtn", "addLiquidityBtn", "mineBtn"];
+      btns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+      });
+    }
+
+    function performReset() {
+      localStorage.clear();
+      location.reload();
+    }
+
+    // --- UI UPDATE FUNCTIONS ---
+    function updateUI() {
+      const container = document.getElementById("chainContainer");
+      if (container) {
+        container.innerHTML = "";
+        myBlockchain.chain.forEach((block, index) => {
+          const isGenesis = index === 0;
+          const truncHash = (str) => str.substring(0, 15) + "...";
+          const timeStr = new Date(block.timestamp).toLocaleString();
+
+          let txHtml = "";
+          if (Array.isArray(block.transactions)) {
+            block.transactions.forEach(tx => {
+              if (typeof tx === "string") {
+                txHtml += `<div class="text-slate-500 italic text-xs">${tx}</div>`;
+              } else if (tx.type === "MINING_REWARD") {
+                txHtml += `<div class="border-b border-slate-700 py-1 text-xs">🏆 Mining Reward: +50 BTC, +50 ETH</div>`;
+              } else {
+                const from = tx.from.substring(0, 8) + "...";
+                const to = tx.to === myWalletId ? "Me" : tx.to.substring(0, 8) + "...";
+                txHtml += `<div class="border-b border-slate-700 py-1 text-xs">💸 ${from} → ${to}: <b>${tx.amount} ${tx.coin}</b></div>`;
+              }
+            });
+          }
+
+          const div = document.createElement("div");
+          // If hack is active and this is the corrupted block, highlight with neon red effect
+          const isCorrupted = hackActive && index === corruptedBlockIndex;
+          const borderClass = isCorrupted ? "border-red-500 border-2" : (isGenesis ? "border-purple-500" : "border-cyan-500");
+          const neonStyle = isCorrupted ? "box-shadow: 0 0 5px #ef4444, 0 0 10px #ef4444, 0 0 15px rgba(239, 68, 68, 0.5); animation: neonPulse 1.5s ease-in-out infinite;" : "";
+          div.className = `block-card min-w-[250px] max-w-[250px] bg-slate-800 border ${borderClass} rounded-xl p-4 flex-shrink-0 transition-all shadow-lg`;
+          if (isCorrupted) div.style.cssText = neonStyle;
+          div.innerHTML = `
+            <div class="font-bold text-white mb-2 text-sm">${isGenesis ? "🔮 GENESIS" : "🧱 BLOCK #" + block.index}</div>
+            <div class="text-xs text-slate-400 mb-2">⏰ ${timeStr}</div>
+            <div class="bg-slate-900 rounded-lg p-2 max-h-24 overflow-y-auto mb-2">${txHtml}</div>
+            <div class="text-xs">
+              <span class="text-slate-500">Hash:</span>
+              <span class="text-cyan-400 font-mono text-xs">${truncHash(block.hash)}</span>
+            </div>
+          `;
+
+          if (index < myBlockchain.chain.length - 1) {
+            const arrow = document.createElement("div");
+            arrow.className = "flex items-center justify-center text-slate-500 text-xl flex-shrink-0";
+            arrow.innerHTML = "→";
+            container.appendChild(div);
+            container.appendChild(arrow);
+          } else {
+            container.appendChild(div);
+          }
+        });
+      }
+      updateStatsDashboard();
+      updateLedgerUI();
+    }
+
+    function updateStatsDashboard() {
+      document.getElementById("statTotalBlocks").innerText = myBlockchain.chain.length;
+    }
+
+    function updateLedgerUI() {
+      const ledgerDiv = document.getElementById("ledgerList");
+      if (!ledgerDiv) return;
+      ledgerDiv.innerHTML = "";
+
+      const txHistory = [];
+      myBlockchain.chain.forEach((block, idx) => {
+        if (idx === 0) return;
+        block.transactions.forEach(tx => {
+          if (typeof tx !== "string") {
+            txHistory.push(tx);
+          }
+        });
+      });
+
+      if (txHistory.length === 0) {
+        ledgerDiv.innerHTML = '<span class="text-slate-600 italic">No transactions yet...</span>';
+        return;
+      }
+
+      txHistory.slice(-10).reverse().forEach(tx => {
+        const item = document.createElement("div");
+        item.className = "flex justify-between items-center py-2 border-b border-slate-700";
+        if (tx.type === "MINING_REWARD") {
+          item.innerHTML = `<span class="text-xs text-amber-400">🏆 Mining Reward</span><span class="text-xs text-white">+50 BTC +50 ETH</span>`;
+        } else {
+          const isMe = tx.to === myWalletId;
+          item.innerHTML = `<span class="font-mono text-xs ${isMe ? "text-emerald-400" : "text-cyan-400"}">${tx.from.substring(0, 8)}...</span><span class="font-bold text-white text-xs">${tx.amount} ${tx.coin}</span>`;
+        }
+        ledgerDiv.appendChild(item);
+      });
+    }
+
+    // Explorer Functions
+    function closeModal() {
+      document.getElementById("explorerModal").classList.add("hidden");
+    }
+
+    window.onclick = (event) => {
+      const modal = document.getElementById("explorerModal");
+      if (event.target == modal) modal.classList.add("hidden");
+    };
+
+    function searchExplorer() {
+      const query = document.getElementById("searchInput").value.trim();
+      const modal = document.getElementById("explorerModal");
+      const title = document.getElementById("modalTitle");
+      const body = document.getElementById("modalBody");
+
+      if (!query) return;
+
+      modal.classList.remove("hidden");
+      
+      // Search for wallet
+      if (query.startsWith("Wallet_")) {
+        title.innerHTML = `👛 Wallet: <span class="text-cyan-400 text-sm">${query}</span>`;
+        let historyHtml = "";
+        let found = false;
+        
+        // Use userBalances if searching for current user's wallet
+        let btcBalance = (query === myWalletId) ? userBalances.BTC : 0;
+        let ethBalance = (query === myWalletId) ? userBalances.ETH : 0;
+        let isCurrentUser = (query === myWalletId);
+
+        // Generate transaction history for all wallets
+        myBlockchain.chain.forEach(block => {
+          if (!Array.isArray(block.transactions)) return;
+          block.transactions.forEach(tx => {
+            if (typeof tx === "string") return;
+            if (tx.to === query) {
+              if (tx.type === "MINING_REWARD") {
+                // Only add to balance for non-current-user
+                if (!isCurrentUser) {
+                  btcBalance += 50;
+                  ethBalance += 50;
+                }
+                historyHtml += `<div class="flex justify-between py-2 border-b border-slate-700"><span class="text-xs text-slate-400">Block #${block.index} - Mining Reward</span><span class="text-emerald-400 text-sm">+50 BTC +50 ETH</span></div>`;
+                found = true;
+              } else {
+                if (!isCurrentUser) {
+                  if (tx.coin === "BTC") btcBalance += tx.amount;
+                  else ethBalance += tx.amount;
+                }
+                historyHtml += `<div class="flex justify-between py-2 border-b border-slate-700"><span class="text-xs text-slate-400">Block #${block.index} - From ${tx.from.substring(0,8)}...</span><span class="text-emerald-400 text-sm">+${tx.amount} ${tx.coin}</span></div>`;
+                found = true;
+              }
+            }
+            if (tx.from === query) {
+              const totalOut = tx.amount + (tx.fee || 0);
+              if (!isCurrentUser) {
+                if (tx.coin === "BTC") btcBalance -= totalOut;
+                else ethBalance -= totalOut;
+              }
+              historyHtml += `<div class="flex justify-between py-2 border-b border-slate-700"><span class="text-xs text-slate-400">Block #${block.index} - To ${tx.to.substring(0,8)}...</span><span class="text-red-400 text-sm">-${totalOut} ${tx.coin}</span></div>`;
+              found = true;
+            }
+          });
+        });
+        
+        const balanceHtml = `<div class="bg-slate-800 p-4 rounded-xl mb-4 text-center">
+          <div class="text-slate-400 text-sm mb-2">Current Balance</div>
+          <div class="flex justify-center gap-6">
+            <div><span class="text-2xl font-bold text-amber-400">${btcBalance}</span><span class="text-amber-300 text-sm ml-1">BTC</span></div>
+            <div><span class="text-2xl font-bold text-cyan-400">${ethBalance}</span><span class="text-cyan-300 text-sm ml-1">ETH</span></div>
+          </div>
+        </div>
+        <h3 class="text-white font-semibold mb-2">Transaction History</h3>`;
+        
+        body.innerHTML = !found ? balanceHtml + "<p class='text-slate-500'>No transactions found.</p>" : balanceHtml + historyHtml;
+      }
+      // Search for hash (block)
+      else if (query.length > 20) {
+        title.innerHTML = "📦 Block Details";
+        const block = myBlockchain.chain.find(b => b.hash === query || b.hash.startsWith(query));
+        if (block) {
+          let txList = "";
+          if (Array.isArray(block.transactions)) {
+            block.transactions.forEach(tx => {
+              if (typeof tx === "string") {
+                txList += `<div class="text-slate-400 italic py-1">${tx}</div>`;
+              } else if (tx.type === "MINING_REWARD") {
+                txList += `<div class="py-1 border-b border-slate-700">🏆 Mining Reward: +50 BTC +50 ETH → ${tx.to.substring(0,10)}...</div>`;
+              } else {
+                txList += `<div class="py-1 border-b border-slate-700">💸 ${tx.from.substring(0,8)}... → ${tx.to.substring(0,8)}...: <b>${tx.amount} ${tx.coin}</b></div>`;
+              }
+            });
+          }
+          body.innerHTML = `<div class="font-mono text-sm space-y-2">
+            <div><span class="text-slate-400">Index:</span> <span class="text-white">${block.index}</span></div>
+            <div><span class="text-slate-400">Timestamp:</span> <span class="text-white">${new Date(block.timestamp).toLocaleString()}</span></div>
+            <div><span class="text-slate-400">Hash:</span> <span class="text-cyan-400 break-all">${block.hash}</span></div>
+            <div><span class="text-slate-400">Prev Hash:</span> <span class="text-purple-400 break-all">${block.previousHash}</span></div>
+            <div class="mt-3 bg-slate-900 p-3 rounded-lg">${txList || "<span class='text-slate-500'>No transactions</span>"}</div>
+          </div>`;
+        } else {
+          body.innerHTML = `<p class="text-slate-500">Block not found.</p>`;
+        }
+      }
+      // Invalid search
+      else {
+        title.innerHTML = "Search Results";
+        body.innerHTML = `<p class="text-slate-500">Please enter a valid wallet address (Wallet_...) or block hash.</p>`;
+      }
+    }
+
+    function validateChainUI() {
+      // If a hack was active, fix the corrupted block first
+      if (hackActive && corruptedBlockIndex !== null) {
+        const corruptedBlock = myBlockchain.chain[corruptedBlockIndex];
+        if (corruptedBlock) {
+          // Recalculate the hash to fix the block
+          corruptedBlock.hash = corruptedBlock.calculateHash();
+          myBlockchain.saveToStorage();
+          log(`Block #${corruptedBlockIndex} was repaired! 🔧`, "success");
+        }
+        hackActive = false;
+        corruptedBlockIndex = null;
+        setTransactionButtonsDisabled(false);
+        p2pChannel.postMessage({ type: MSG_TYPES.HACK_RESOLVED, sender: nodeId });
+        updateUI();
+        log("Chain validated and repaired. ✅", "success");
+        playSound("success");
+        return;
+      }
+      
+      if (myBlockchain.isChainValid()) {
+        log("Chain is valid. ✅", "success");
+        playSound("success");
+      } else {
+        log("WARNING: Chain corrupted! 🚨", "error");
+        playSound("error");
+      }
+    }
+
+    function corruptChain() {
+      // Prevent multiple hacks
+      if (hackActive) {
+        log("⚠️ Chain is already compromised! Validate to repair first.", "error");
+        playSound("error");
+        return;
+      }
+      
+      // Always hack the last block (not genesis)
+      if (myBlockchain.chain.length <= 1) { 
+        log("No blocks to corrupt!", "error"); 
+        return; 
+      }
+      
+      const lastBlock = myBlockchain.chain[myBlockchain.chain.length - 1];
+      lastBlock.transactions = ["HACKED 💀"];
+      
+      // Mark hack active and track which block was corrupted
+      hackActive = true;
+      corruptedBlockIndex = lastBlock.index;
+      setTransactionButtonsDisabled(true);
+      updateUI();
+      log(`Block #${lastBlock.index} was corrupted!`, "error");
+      playSound("error");
+      // Broadcast hack detection
+      p2pChannel.postMessage({ type: MSG_TYPES.HACK_DETECTED, payload: { blockIndex: lastBlock.index }, sender: nodeId });
+    }
+
+    // Event listeners for swap calculation
+    document.getElementById("swapAmount").addEventListener("input", updateSwapOutput);
+    document.getElementById("swapFrom").addEventListener("change", updateSwapOutput);
+
+    // P2P Channel
+    const p2pChannel = new BroadcastChannel("p2p_blockchain_net");
+    const MSG_TYPES = { 
+      NEW_BLOCK: "NEW_BLOCK", 
+      REQUEST_CHAIN: "REQUEST_CHAIN", 
+      SEND_CHAIN: "SEND_CHAIN", 
+      RESET_NETWORK: "RESET_NETWORK",
+      SEND_COINS: "SEND_COINS",
+      HACK_DETECTED: "HACK_DETECTED",
+      HACK_RESOLVED: "HACK_RESOLVED"
+    };
+
+    // P2P Message Handler
+    p2pChannel.onmessage = (event) => {
+      const { type, payload, sender } = event.data;
+      if (sender === nodeId) return; // Ignore own messages
+
+      switch (type) {
+        case MSG_TYPES.NEW_BLOCK:
+          // Add new block from network
+          const newBlock = new Block(payload.index, payload.timestamp, payload.transactions, payload.previousHash);
+          newBlock.nonce = payload.nonce;
+          newBlock.hash = payload.hash;
+          const latestBlock = myBlockchain.getLatestBlock();
+          if (newBlock.previousHash === latestBlock.hash && newBlock.index === latestBlock.index + 1) {
+            myBlockchain.chain.push(newBlock);
+            myBlockchain.transactions = [];
+            myBlockchain.saveToStorage();
+            log(`📦 Block #${newBlock.index} received from network`, "p2p");
+            playSound("success");
+            updateUI();
+          }
+          break;
+        case MSG_TYPES.REQUEST_CHAIN:
+          // Send our chain to the requesting node
+          p2pChannel.postMessage({ type: MSG_TYPES.SEND_CHAIN, payload: myBlockchain.chain, sender: nodeId });
+          break;
+        case MSG_TYPES.SEND_CHAIN:
+          // Replace our chain if the received one is longer
+          if (payload.length > myBlockchain.chain.length) {
+            myBlockchain.chain = payload.map(b => {
+              const block = new Block(b.index, b.timestamp, b.transactions, b.previousHash);
+              block.nonce = b.nonce;
+              block.hash = b.hash;
+              return block;
+            });
+            myBlockchain.transactions = [];
+            myBlockchain.saveToStorage();
+            log("🔄 Chain synchronized from network", "p2p");
+            updateUI();
+          }
+          break;
+        case MSG_TYPES.SEND_COINS:
+          // Check if we are the receiver
+          if (payload.to === myWalletId) {
+            userBalances[payload.coin] += payload.amount;
+            savePoolData();
+            updatePoolUI();
+            playSound("coin");
+            log(`📥 Received ${payload.amount} ${payload.coin} from ${payload.from.substring(0, 10)}...`, "success");
+          }
+          break;
+        case MSG_TYPES.HACK_DETECTED:
+          // Sync hack state from network
+          hackActive = true;
+          corruptedBlockIndex = payload.blockIndex;
+          // Corrupt the same block locally
+          if (myBlockchain.chain[payload.blockIndex]) {
+            myBlockchain.chain[payload.blockIndex].transactions = ["HACKED 💀"];
+          }
+          setTransactionButtonsDisabled(true);
+          log(`🚨 Block #${payload.blockIndex} was corrupted on network!`, "error");
+          playSound("error");
+          updateUI();
+          break;
+        case MSG_TYPES.HACK_RESOLVED:
+          // Sync hack resolution from network
+          if (hackActive && corruptedBlockIndex !== null) {
+            const corruptedBlock = myBlockchain.chain[corruptedBlockIndex];
+            if (corruptedBlock) {
+              corruptedBlock.hash = corruptedBlock.calculateHash();
+              myBlockchain.saveToStorage();
+            }
+          }
+          hackActive = false;
+          corruptedBlockIndex = null;
+          setTransactionButtonsDisabled(false);
+          log("✅ Chain repaired on network", "success");
+          playSound("success");
+          updateUI();
+          break;
+        case MSG_TYPES.RESET_NETWORK:
+          log("⚠️ Network reset signal received!", "error");
+          performReset();
+          break;
+      }
+    };
+
+    // Request chain sync on startup
+    setTimeout(() => {
+      if (myBlockchain.chain.length === 1) {
+        log("🔗 Requesting chain sync from network...", "p2p");
+        p2pChannel.postMessage({ type: MSG_TYPES.REQUEST_CHAIN, sender: nodeId });
+      } else {
+        log("💾 Loaded chain from storage", "info");
+      }
+    }, 500);
+
+    // Initialize
+    loadOrGenerateWallet();
+    loadPoolData();
+    initPriceChart();
+    updateUI();
+  </script>
+</body>
+
+</html>
